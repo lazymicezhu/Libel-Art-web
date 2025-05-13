@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI面试官</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>AI面试官挑战</h1>
+        <p class="description">你是一位文科生，面试官对文科生有偏见且态度刻薄。你需要在五轮对话中说服他录用你。</p>
+        <div class="chat-container">
+            <div class="chat-box" id="chat-box"></div>
+            <div class="input-container">
+                <textarea id="user-input" placeholder="在此输入你的回答..."></textarea>
+                <button id="send-btn">发送</button>
+            </div>
+            <div class="rounds-counter">当前轮数: <span id="current-round">0</span>/5</div>
+        </div>
+        <div class="restart-container">
+            <button id="restart-btn">重新开始</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 
