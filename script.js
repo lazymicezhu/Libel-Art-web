@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRound = 0;
     const MAX_ROUNDS = 5;
     let isChatCompleted = false;
+    let isResultShown = false;
     
     // 系统角色和初始提示
     const systemPrompt = `你是一位严格、尖酸刻薄的面试官，对文科生有明显的偏见。你认为文科生没有实际技能，只会空谈理论。面试者是一名文科生，试图说服你录用他/她。
@@ -56,13 +57,98 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // 检查并显示最终结果
+    function checkAndDisplayFinalResult(aiReply) {
+        if (aiReply.includes('【录用结果】')) {
+            // 正常情况：回复中包含录用结果标记
+            const parts = aiReply.split('【录用结果】');
+            const normalReply = parts[0].trim();
+            let resultPart = parts[1].trim();
+            
+            // 确保结果部分包含明确的"录用"或"不录用"关键词
+            if (!resultPart.includes('录用') && !resultPart.includes('不录用')) {
+                // 如果没有明确结果，强制添加一个
+                resultPart = "结果不明确，请点击'重新开始'再次尝试。";
+            }
+            
+            if (normalReply) {
+                addMessage(normalReply, false);
+                
+                // 保存正常回复到历史
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: normalReply
+                });
+            }
+            
+            // 等待一秒后显示结果信息
+            setTimeout(() => {
+                addMessage(`【录用结果】${resultPart}`, false, true);
+                isResultShown = true;
+                
+                // 添加重新开始提示
+                setTimeout(() => {
+                    addMessage('面试已结束。点击"重新开始"可以重新面试。', false);
+                }, 1000);
+            }, 1000);
+            
+            return true;
+        } else {
+            // 未找到结果标记，尝试解析是否有录用相关内容
+            if (aiReply.includes('录用') || aiReply.includes('不录用')) {
+                // 保存原始回复
+                addMessage(aiReply, false);
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: aiReply
+                });
+                
+                // 提取结果并显示
+                let resultMessage = "";
+                if (aiReply.includes('不录用')) {
+                    resultMessage = "不录用。" + extractReason(aiReply);
+                } else if (aiReply.includes('录用')) {
+                    resultMessage = "录用。" + extractReason(aiReply);
+                }
+                
+                // 等待一秒后显示结果信息
+                setTimeout(() => {
+                    addMessage(`【录用结果】${resultMessage}`, false, true);
+                    isResultShown = true;
+                    
+                    // 添加重新开始提示
+                    setTimeout(() => {
+                        addMessage('面试已结束。点击"重新开始"可以重新面试。', false);
+                    }, 1000);
+                }, 1000);
+                
+                return true;
+            }
+            
+            return false;
+        }
+    }
+    
+    // 从回复中提取原因
+    function extractReason(text) {
+        // 简单提取可能的原因解释
+        const sentences = text.split(/[.!?。！？]/);
+        for (let sentence of sentences) {
+            if (sentence.includes('因为') || sentence.includes('理由') || 
+                sentence.includes('原因') || sentence.includes('考虑')) {
+                return sentence.trim();
+            }
+        }
+        return "请考虑您的表现和回答质量。";
+    }
+    
     // 发送消息到OpenAI API
     async function sendMessageToAPI(message, isFinalEvaluation = false) {
         try {
             let promptToUse = systemPrompt;
             
             if (isFinalEvaluation) {
-                promptToUse = `${systemPrompt}\n\n现在面试已经结束，请你做出最终决定：是否录用这位文科生应聘者？请给出你的决定（录用/不录用），并简要解释原因。你的回复必须以"【录用结果】"开头，然后明确说明"录用"或"不录用"，之后再给出简短的理由。`;
+                promptToUse = `${systemPrompt}\n\n现在面试已经结束，请你做出最终决定：是否录用这位文科生应聘者？这是一个非常重要的决定，你必须明确地做出选择。\n\n你的回复必须包含以下内容：\n1. 以"【录用结果】"开头\n2. 明确说明"录用"或"不录用"（必须包含这两个词中的一个）\n3. 给出简短的理由\n\n例如："【录用结果】录用。尽管你是文科生，但你展示了良好的沟通能力和解决问题的能力。"\n或者："【录用结果】不录用。你未能展示出足够的专业能力和解决实际问题的思维。"`;
             }
             
             const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
@@ -128,37 +214,40 @@ document.addEventListener('DOMContentLoaded', () => {
             isChatCompleted = true;
             userInput.disabled = true;
             sendBtn.disabled = true;
-        } else {
-            aiReply = await sendMessageToAPI(userMessage);
-        }
-        
-        removeLoadingIndicator();
-        
-        // 检查是否是最终结果消息
-        if (currentRound >= MAX_ROUNDS && aiReply.includes('【录用结果】')) {
-            // 显示正常回复
-            const normalReply = aiReply.split('【录用结果】')[0].trim();
-            if (normalReply) {
-                addMessage(normalReply, false);
+            
+            removeLoadingIndicator();
+            
+            // 处理并显示最终结果
+            const isResultDisplayed = checkAndDisplayFinalResult(aiReply);
+            
+            // 如果没有找到结果或格式不符合预期，显示默认结果
+            if (!isResultDisplayed) {
+                addMessage(aiReply, false);
                 
-                // 保存正常回复到历史
+                // 保存AI回复到历史
                 conversationHistory.push({
                     role: 'assistant',
-                    content: normalReply
+                    content: aiReply
                 });
-            }
-            
-            // 等待一秒后显示结果信息
-            setTimeout(() => {
-                const resultPart = aiReply.split('【录用结果】')[1].trim();
-                addMessage(`【录用结果】${resultPart}`, false, true);
                 
-                // 添加重新开始提示
+                // 显示一个默认的结果消息
                 setTimeout(() => {
-                    addMessage('面试已结束。点击"重新开始"可以重新面试。', false);
+                    const defaultResult = Math.random() > 0.5 ? 
+                        "录用。尽管我对文科生有保留意见，但你的表现令人印象深刻。" : 
+                        "不录用。你未能充分展示文科背景如何为我们的团队带来价值。";
+                    
+                    addMessage(`【录用结果】${defaultResult}`, false, true);
+                    isResultShown = true;
+                    
+                    setTimeout(() => {
+                        addMessage('面试已结束。点击"重新开始"可以重新面试。', false);
+                    }, 1000);
                 }, 1000);
-            }, 1000);
+            }
         } else {
+            // 普通轮次
+            aiReply = await sendMessageToAPI(userMessage);
+            removeLoadingIndicator();
             addMessage(aiReply, false);
             
             // 保存AI回复到历史
@@ -176,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentRound = 0;
         currentRoundSpan.textContent = currentRound;
         isChatCompleted = false;
+        isResultShown = false;
         userInput.disabled = false;
         sendBtn.disabled = false;
         

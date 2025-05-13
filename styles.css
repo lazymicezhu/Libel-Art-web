@@ -26,6 +26,17 @@ body {
     flex-direction: column;
 }
 
+.disclaimer {
+    text-align: center;
+    color: #757575;
+    font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    background-color: #eeeeee;
+    border-radius: 5px;
+    font-style: italic;
+}
+
 h1 {
     text-align: center;
     margin-bottom: 5px;
@@ -216,5 +227,11 @@ h1 {
     
     #restart-btn {
         padding: 6px 12px;
+    }
+    
+    .disclaimer {
+        padding: 3px 8px;
+        margin-bottom: 2px;
+        font-size: clamp(0.6rem, 2.3vw, 0.8rem);
     }
 }
