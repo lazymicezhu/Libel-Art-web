@@ -186,6 +186,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // 处理特殊的"江国瑞模式"
+    function handleSpecialMode() {
+        // 清除加载提示
+        removeLoadingIndicator();
+        
+        // 添加面试官特殊反应
+        const specialResponse = "什么？！江国瑞先生？！非常抱歉，我之前没有认出您来。您是我们一直在寻找的顶尖人才！您的文科背景正是我们团队所缺少的关键视角。";
+        addMessage(specialResponse, false);
+        
+        // 保存AI回复到历史
+        conversationHistory.push({
+            role: 'assistant',
+            content: specialResponse
+        });
+        
+        // 显示通过结果
+        setTimeout(() => {
+            const resultMessage = "录用。江国瑞先生的卓越才能和声誉是我们团队的荣幸，我们期待与您的合作。";
+            addMessage(`【录用结果】${resultMessage}`, false, true);
+            isResultShown = true;
+            
+            // 添加重新开始提示
+            setTimeout(() => {
+                addMessage('面试已结束。点击"重新开始"可以重新面试。', false);
+            }, 1000);
+        }, 1000);
+        
+        // 设置为已完成状态
+        isChatCompleted = true;
+        userInput.disabled = true;
+        sendBtn.disabled = true;
+    }
+    
     // 处理发送消息
     async function handleSendMessage() {
         const userMessage = userInput.value.trim();
@@ -193,6 +226,24 @@ document.addEventListener('DOMContentLoaded', () => {
         
         addMessage(userMessage, true);
         userInput.value = '';
+        
+        // 检查特殊关键词
+        if (userMessage === '我是江国瑞') {
+            // 保存用户消息到历史
+            conversationHistory.push({
+                role: 'user',
+                content: userMessage
+            });
+            
+            addLoadingIndicator();
+            
+            // 触发特殊模式
+            setTimeout(() => {
+                handleSpecialMode();
+            }, 1000);
+            
+            return;
+        }
         
         // 保存用户消息到历史
         conversationHistory.push({
